@@ -1,0 +1,42 @@
+{
+  "name": "wfsm-parser",
+  "version": "2.0.0",
+  "description": "WFSM 专属 3D 模型文件格式解析器 — WFS Engine Model Format Parser & Writer",
+  "main": "wfsm-parser.js",
+  "scripts": {
+    "test":    "node wfsm-example.js",
+    "verify":  "node -e \"const WFSM=require('./wfsm-parser.js');const p=new WFSM.Parser(WFSM.FileUtils.readNode('test_cube.wfsm'));p.parse().then(r=>console.log('✅',r.meta.modelName,'—',r.geometries[0].vertexCount,'verts')).catch(e=>process.exit(1))\""
+  },
+  "keywords": [
+    "3d",
+    "model",
+    "wfsm",
+    "parser",
+    "writer",
+    "wfs-engine",
+    "firm-platform",
+    "half-edge",
+    "topology",
+    "geometry"
+  ],
+  "author": "Derry.WFS",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/wfsm-format.git"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/wfsm-format#readme",
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/wfsm-format/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "browser": "wfsm-parser.js",
+  "files": [
+    "wfsm-parser.js",
+    "wfsm-example.js",
+    "test_cube.wfsm",
+    "README.md"
+  ]
+}
