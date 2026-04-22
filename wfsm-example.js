@@ -1,130 +1,152 @@
 /**
- * WFSM Parser 使用示例
- * 
- * 浏览器用法:
- *   <script src="wfsm-parser.js"></script>
+ * WFSM Parser — Usage Examples
+ * GitHub : https://github.com/derrykervin/WFSM-Format
+ * CDN    : https://cdn.jsdelivr.net/gh/derrykervin/WFSM-Format/wfsm-parser.js
  *
- * Node.js 用法:
+ * Browser:
+ *   <script src="https://cdn.jsdelivr.net/gh/derrykervin/WFSM-Format/wfsm-parser.js"></script>
+ *
+ * Node.js:
  *   const WFSM = require('./wfsm-parser.js');
  */
 
-// ── 示例1：创建并保存模型 ──────────────────────────
+// ── Example 1: Create and save a model ───────────────────────────────────────
 async function createModel() {
   const writer = new WFSM.Writer({
     modelName:   'Sword_001',
     author:      'Derry.WFS',
     category:    'weapon',
     project:     'FIRM-WORLD-01',
-    tags:        ['melee', 'tier-2'],
+    tags:        ['melee', 'tier-2', 'sci-fi'],
+    description: 'High-energy plasma sword with magnetic-field blade confinement.',
     permissions: WFSM.PERM.VIEW | WFSM.PERM.EDIT | WFSM.PERM.EXPORT,
   });
 
-  // 添加几何数据
+  // Add geometry (positions + indices required)
   const geoId = writer.addGeometry({
-    positions: new Float32Array([-1,-1,1, 1,-1,1, 1,1,1, -1,1,1]),
-    indices:   new Uint32Array([0,1,2, 0,2,3]),
-    uvSets:    [new Float32Array([0,0, 1,0, 1,1, 0,1])],
+    positions: new Float32Array([
+      -1, -1,  1,   1, -1,  1,   1,  1,  1,  -1,  1,  1,  // front face
+       1, -1, -1,  -1, -1, -1,  -1,  1, -1,   1,  1, -1,  // back face
+    ]),
+    indices: new Uint32Array([
+      0, 1, 2,  0, 2, 3,  // front
+      4, 5, 6,  4, 6, 7,  // back
+    ]),
+    uvSets: [new Float32Array([
+      0,0, 1,0, 1,1, 0,1,
+      0,0, 1,0, 1,1, 0,1,
+    ])],
   });
 
-  // 添加材质（支持磨损系统）
+  // Add material — supports WFS wear system
   const matId = writer.addMaterial({
     baseColor:    [0.7, 0.7, 0.8, 1.0],
     metalness:    0.9,
     roughness:    0.15,
-    wearValue:    0.2,    // 磨损程度 [0,1]
-    wearSeed:     1337,   // 复现种子
+    emissive:     [0.0, 0.5, 1.0],
+    wearValue:    0.2,    // wear level [0, 1]
+    wearSeed:     1337,   // reproducible seed
     materialType: 'metal',
   });
 
-  // 添加对象
+  // Add object to scene graph
   const objId = writer.addObject({
     objectName:  'Sword_Blade',
     type:        'mesh',
     geometryRef: geoId,
     materialRef: [matId],
+    transform:   [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1],
   });
 
-  // 记录参数化操作历史
+  // Record parametric operation history
   writer.addParam({ op: 'extrude', targetId: objId, params: { depth: 2.0, keepFace: true } });
   writer.addParam({ op: 'bevel',   targetId: objId, params: { width: 0.05, segments: 2 } });
 
-  // 构建文件
+  // Save editor state (restored on next open)
+  writer.setEditorState({
+    selectedObjects: [objId],
+    viewportMode:    'perspective',
+    editMode:        'object',
+    gizmoState:      { type: 'translate', space: 'local' },
+  });
+
   const buf = await writer.build();
 
-  // 浏览器：下载文件
+  // Browser: download
   if (typeof window !== 'undefined') {
     WFSM.FileUtils.downloadBrowser(buf, 'sword.wfsm');
+    console.log('File downloaded.');
   }
-  // Node.js：写入文件
+  // Node.js: write to disk
   else {
     WFSM.FileUtils.writeNode(buf, 'sword.wfsm');
-    console.log('✅ sword.wfsm 已写入，大小:', buf.byteLength, 'bytes');
+    console.log('Written: sword.wfsm —', buf.byteLength, 'bytes');
   }
 }
 
-// ── 示例2：读取并解析模型 ──────────────────────────
+// ── Example 2: Load and parse a model ────────────────────────────────────────
 async function loadModel(filePath) {
-  let buf;
-
-  // Node.js 读取
-  buf = WFSM.FileUtils.readNode(filePath);
-
-  // 浏览器读取（配合 <input type="file">）:
-  // buf = await WFSM.FileUtils.readBrowserFile(inputElement.files[0]);
-
+  const buf    = WFSM.FileUtils.readNode(filePath);
   const parser = new WFSM.Parser(buf);
   const model  = await parser.parse();
 
   if (model.code !== WFSM.ERR.OK) {
-    console.error('解析失败:', model.code);
-    return;
+    console.error('Parse error:', model.code);
+    return null;
   }
 
-  console.log('模型名称:', model.meta.modelName);
-  console.log('顶点数:',   model.geometries[0]?.vertexCount);
-  console.log('材质数:',   model.materials.length);
-  console.log('参数历史:', model.params.length, '步');
+  console.log('Model name:',     model.meta.modelName);
+  console.log('Author:',         model.meta.author);
+  console.log('Vertex count:',   model.geometries[0]?.vertexCount);
+  console.log('Material count:', model.materials.length);
+  console.log('Param history:',  model.params.length, 'operations');
+  console.log('Permissions:',    model.permissions.toString(2).padStart(8, '0'));
 
   return model;
 }
 
-// ── 示例3：拓扑遍历 ──────────────────────────────
-async function topologyDemo(model) {
+// ── Example 3: Topology traversal ────────────────────────────────────────────
+function topologyDemo(model) {
   const topo = model.topologies[0];
-  if (!topo) return;
+  if (!topo) { console.log('No topology data.'); return; }
 
-  // 校验拓扑完整性
   const { valid, errors } = WFSM.TopologyUtils.validate(topo);
-  console.log('拓扑校验:', valid ? '通过' : errors[0]);
+  console.log('Topology valid:', valid ? 'YES' : `NO — ${errors[0]}`);
 
-  // 遍历顶点 0 的一环邻面
-  const v0 = topo.vertices[0];
-  const neighborFaces = WFSM.TopologyUtils.vertexStar(topo.halfEdges, v0);
-  console.log('顶点0 邻面:', neighborFaces);
+  const neighborFaces = WFSM.TopologyUtils.vertexStar(topo.halfEdges, topo.vertices[0]);
+  console.log('Vertex 0 adjacent faces:', neighborFaces);
 
-  // 边环选择
   const loop = WFSM.TopologyUtils.edgeLoop(topo.halfEdges, 0);
-  console.log('边环半边数:', loop.length);
+  console.log('Edge loop length:', loop.length);
+
+  const faceVerts = WFSM.TopologyUtils.faceVertices(topo.halfEdges, topo.faces[0]);
+  console.log('Face 0 vertices:', faceVerts);
 }
 
-// ── 示例4：导出为 OBJ ─────────────────────────────
-async function exportToOBJ(model) {
-  // 检查导出权限
+// ── Example 4: Export to OBJ ─────────────────────────────────────────────────
+function exportToOBJ(model) {
   if (!(model.permissions & WFSM.PERM.EXPORT)) {
-    console.error('无导出权限');
+    console.error('Export permission denied.');
     return;
   }
   const objStr = WFSM.toOBJ(model);
-  console.log('OBJ 预览（前3行）:');
-  objStr.split('\n').slice(0, 3).forEach(l => console.log(' ', l));
+  require('fs').writeFileSync('model.obj', objStr);
+  console.log('Exported: model.obj');
 }
 
-// ── 运行示例 ─────────────────────────────────────
+// ── Example 5: Quick metadata preview ────────────────────────────────────────
+async function quickPreview(filePath) {
+  const buf  = WFSM.FileUtils.readNode(filePath);
+  const meta = await new WFSM.Parser(buf).quickMeta();
+  console.log('Quick preview:', meta.modelName, '|', meta.category, '|', meta.tags.join(', '));
+}
+
+// ── Run ───────────────────────────────────────────────────────────────────────
 (async () => {
   await createModel();
   const model = await loadModel('sword.wfsm');
-  if (model) {
-    await topologyDemo(model);
-    await exportToOBJ(model);
-  }
+  if (!model) return;
+  topologyDemo(model);
+  exportToOBJ(model);
+  await quickPreview('sword.wfsm');
 })();

@@ -1,4 +1,4 @@
-# WFSM Format — WFS Engine 专属 3D 模型文件格式
+# WFSM Format — WFS Engine 3D Model File Format
 
 <div align="center">
 
@@ -6,49 +6,74 @@
 ![License](https://img.shields.io/badge/license-MIT-4ade80?style=flat-square)
 ![JavaScript](https://img.shields.io/badge/JavaScript-ES2020-ff6b35?style=flat-square)
 ![Zero Dependencies](https://img.shields.io/badge/dependencies-zero-fbbf24?style=flat-square)
+![Node.js](https://img.shields.io/badge/Node.js-%3E%3D14-brightgreen?style=flat-square)
 
-**工程级 3D 模型文件格式 · 支持完整拓扑 · 内置安全校验 · 零依赖**
+**Engineering-grade 3D model file format · Full topology support · Built-in security · Zero dependencies**
+
+[Documentation](https://github.com/derrykervin/WFSM-Format#api-reference) · [Changelog](https://github.com/derrykervin/WFSM-Format/blob/main/CHANGELOG.md) · [Report Bug](https://github.com/derrykervin/WFSM-Format/issues)
 
 </div>
 
 ---
 
-## 什么是 WFSM？
+## What is WFSM?
 
-WFSM（WFS Model）是专为 WFS Engine 设计的原生 3D 模型文件格式。  
-不同于 `.obj`、`.gltf` 等只保存"最终渲染结果"的通用格式，WFSM 保存的是完整的**可编辑工程状态**：
+WFSM (WFS Model) is the native 3D model file format for WFS Engine.
 
-| 能力 | .obj / .gltf | WFSM |
-|------|:---:|:---:|
-| 网格几何数据 | ✅ | ✅ |
-| PBR 材质参数 | ✅ | ✅ |
-| 完整半边拓扑结构 | ❌ | ✅ |
-| 参数化建模历史 | ❌ | ✅ |
-| 编辑器工作现场恢复 | ❌ | ✅ |
-| SHA-256 完整性校验 | ❌ | ✅ |
-| 权限分级控制 | ❌ | ✅ |
-| 程序化材质生成逻辑 | ❌ | ✅ |
+Unlike common exchange formats (`.obj`, `.gltf`, `.fbx`) which only store the final rendered mesh, WFSM preserves the complete **editable engineering state** — similar to Blender's `.blend` or 3ds Max's `.max`, but purpose-built for the WFS / FIRM workflow.
+
+| Feature | .obj / .gltf | WFSM |
+|---------|:---:|:---:|
+| Mesh geometry | ✅ | ✅ |
+| PBR material parameters | ✅ | ✅ |
+| Full half-edge topology | ❌ | ✅ |
+| Parametric modeling history | ❌ | ✅ |
+| Editor state restoration | ❌ | ✅ |
+| SHA-256 integrity check | ❌ | ✅ |
+| Permission-level access control | ❌ | ✅ |
+| Procedural material logic | ❌ | ✅ |
 
 ---
 
-## 快速开始
+## Installation
 
-### 浏览器
+### Browser — via CDN (no install needed)
 
 ```html
-<!-- 通过 jsDelivr CDN 直接引用（替换 YOUR_USERNAME） -->
-<script src="https://cdn.jsdelivr.net/gh/YOUR_USERNAME/wfsm-format/wfsm-parser.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/derrykervin/WFSM-Format/wfsm-parser.js"></script>
+```
+
+### Node.js — download directly
+
+```bash
+curl -O https://raw.githubusercontent.com/derrykervin/WFSM-Format/main/wfsm-parser.js
+```
+
+Or clone the repo:
+
+```bash
+git clone https://github.com/derrykervin/WFSM-Format.git
+```
+
+---
+
+## Quick Start
+
+### Browser
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/derrykervin/WFSM-Format/wfsm-parser.js"></script>
 
 <script>
   async function main() {
     const writer = new WFSM.Writer({
-      modelName: 'MyModel',
+      modelName: 'Triangle',
       author:    'YourName',
       category:  'prop',
     });
 
     writer.addGeometry({
-      positions: new Float32Array([-1,-1,0, 1,-1,0, 0,1,0]),
+      positions: new Float32Array([-1,-1,0,  1,-1,0,  0,1,0]),
       indices:   new Uint32Array([0, 1, 2]),
     });
 
@@ -61,153 +86,143 @@ WFSM（WFS Model）是专为 WFS Engine 设计的原生 3D 模型文件格式。
 
 ### Node.js
 
-```bash
-# 下载到你的项目
-curl -O https://raw.githubusercontent.com/YOUR_USERNAME/wfsm-format/main/wfsm-parser.js
-```
-
 ```js
 const WFSM = require('./wfsm-parser.js');
 
 async function main() {
-  const writer = new WFSM.Writer({ modelName: 'Sword_001', category: 'weapon' });
+  // --- Write ---
+  const writer = new WFSM.Writer({ modelName: 'Cube', category: 'prop' });
 
   const geoId = writer.addGeometry({
-    positions: new Float32Array([-1,-1,1, 1,-1,1, 1,1,1, -1,1,1]),
-    indices:   new Uint32Array([0,1,2, 0,2,3]),
+    positions: new Float32Array([-1,-1,1,  1,-1,1,  1,1,1,  -1,1,1]),
+    indices:   new Uint32Array([0,1,2,  0,2,3]),
   });
-
-  writer.addMaterial({ baseColor: [0.8,0.6,0.2,1], metalness: 0.9, wearValue: 0.1 });
+  writer.addMaterial({ baseColor: [0.8, 0.6, 0.2, 1.0], metalness: 0.7, roughness: 0.3 });
+  writer.addObject({ objectName: 'Cube', geometryRef: geoId });
 
   const buf = await writer.build();
-  WFSM.FileUtils.writeNode(buf, 'sword.wfsm');
-  console.log('✅ 写入完成，大小:', buf.byteLength, 'bytes');
+  WFSM.FileUtils.writeNode(buf, 'cube.wfsm');
+  console.log('Written: cube.wfsm —', buf.byteLength, 'bytes');
 
-  // 读取并解析
-  const model = await new WFSM.Parser(WFSM.FileUtils.readNode('sword.wfsm')).parse();
-  console.log('模型名称:', model.meta.modelName);
-  console.log('顶点数:',   model.geometries[0].vertexCount);
+  // --- Read ---
+  const model = await new WFSM.Parser(
+    WFSM.FileUtils.readNode('cube.wfsm')
+  ).parse();
+
+  console.log('Name:',     model.meta.modelName);
+  console.log('Vertices:', model.geometries[0].vertexCount);
+  console.log('Topology valid:', WFSM.TopologyUtils.validate(model.topologies[0]).valid);
 }
 main();
 ```
 
 ---
 
-## 文件结构
+## File Contents
 
-```
-wfsm-format/
-├── wfsm-parser.js    # 核心库（41KB，零依赖）
-├── wfsm-example.js   # 完整使用示例
-├── test_cube.wfsm    # 测试用 WFSM 模型文件
-├── package.json      # npm 配置
-└── README.md         # 本文档
-```
+| File | Description |
+|------|-------------|
+| [`wfsm-parser.js`](https://github.com/derrykervin/WFSM-Format/blob/main/wfsm-parser.js) | Core library — 41 KB, zero dependencies |
+| [`wfsm-example.js`](https://github.com/derrykervin/WFSM-Format/blob/main/wfsm-example.js) | Complete usage examples |
+| [`test_cube.wfsm`](https://github.com/derrykervin/WFSM-Format/blob/main/test_cube.wfsm) | Real WFSM test model file |
 
 ---
 
-## API 文档
+## API Reference
 
 ### `new WFSM.Writer(options)`
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `modelName` | string | **必填**，模型显示名称 |
-| `author` | string | 作者名称 |
+| Option | Type | Description |
+|--------|------|-------------|
+| `modelName` | string | **Required.** Display name of the model |
+| `author` | string | Author name |
 | `category` | string | `weapon` / `armor` / `prop` / `character` / `environment` |
-| `project` | string | 项目名称 |
-| `tags` | string[] | 标签数组 |
-| `description` | string | 描述文本 |
-| `permissions` | number | 权限位（默认 VIEW\|EDIT\|EXPORT） |
-| `expireAt` | number | 到期时间戳 Unix 秒，`0` = 永久 |
-| `generator` | string | 生成器名称标识 |
+| `project` | string | Project identifier |
+| `tags` | string[] | Tag array for search / filtering |
+| `description` | string | Free-text description |
+| `permissions` | number | Permission flags (default: `VIEW\|EDIT\|EXPORT`) |
+| `expireAt` | number | Expiry Unix timestamp (seconds), `0` = never |
+| `generator` | string | Generator identifier string |
 
-#### `writer.addGeometry(geo)` → `geometryId`
+#### `writer.addGeometry(geo)` → `geometryId: string`
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `positions` | Float32Array | **必填**，顶点坐标 `[x,y,z, ...]` |
-| `indices` | Uint32Array | **必填**，三角面索引 `[i0,i1,i2, ...]` |
-| `normals` | Float32Array | 法线 `[nx,ny,nz, ...]` |
-| `tangents` | Float32Array | 切线 `[tx,ty,tz,w, ...]` |
-| `colors` | Uint8Array | 顶点色 `[r,g,b,a, ...]` uint8 |
-| `uvSets` | Float32Array[] | UV 数组，可多套，index 0 为主贴图 UV |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `positions` | Float32Array | **Required.** Vertex positions `[x,y,z, ...]` |
+| `indices` | Uint32Array | **Required.** Triangle indices `[i0,i1,i2, ...]` |
+| `normals` | Float32Array | Per-vertex normals `[nx,ny,nz, ...]` |
+| `tangents` | Float32Array | Tangents `[tx,ty,tz,w, ...]` |
+| `colors` | Uint8Array | Vertex colors `[r,g,b,a, ...]` uint8 |
+| `uvSets` | Float32Array[] | UV sets (index 0 = main, index 1 = lightmap) |
 
-#### `writer.addMaterial(mat)` → `materialId`
+#### `writer.addMaterial(mat)` → `materialId: string`
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `baseColor` | number[4] | RGBA `[0,1]` |
-| `metalness` | number | 金属度 `[0,1]` |
-| `roughness` | number | 粗糙度 `[0,1]` |
-| `emissive` | number[3] | 自发光 RGB（支持 HDR） |
-| `wearValue` | number | WFS 磨损值 `[0,1]` |
-| `wearSeed` | number | 磨损随机种子，保证可复现 |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `baseColor` | number[4] | RGBA in `[0, 1]` |
+| `metalness` | number | `[0, 1]` — 0 = dielectric, 1 = metal |
+| `roughness` | number | `[0, 1]` — 0 = mirror, 1 = fully diffuse |
+| `emissive` | number[3] | RGB, supports HDR (values > 1.0) |
+| `wearValue` | number | WFS wear level `[0, 1]` |
+| `wearSeed` | number | Reproducible random seed for wear texture |
 | `materialType` | string | `metal` / `fabric` / `ceramic` / `energy` |
-| `lockedOverride` | boolean | 锁定，不受外部磨损逻辑影响 |
+| `lockedOverride` | boolean | If `true`, ignores external wear logic |
 
-#### `writer.addObject(obj)` → `objectId`
+#### `writer.addObject(obj)` → `objectId: string`
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `objectName` | string | 对象名称 |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `objectName` | string | Display name |
 | `type` | string | `mesh` / `curve` / `helper` / `locator` / `group` |
-| `visible` | boolean | 可见性（默认 true） |
-| `geometryRef` | string | 引用的 geometryId |
-| `materialRef` | string[] | 材质 ID 列表 |
-| `transform` | number[16] | 4×4 变换矩阵（列主序） |
-| `parentId` | string | 父对象 ID，null = 根级 |
-| `userData` | object | 自定义扩展数据 |
+| `visible` | boolean | Viewport visibility (default `true`) |
+| `geometryRef` | string | UUID of the referenced geometry |
+| `materialRef` | string[] | List of material UUIDs |
+| `transform` | number[16] | 4×4 affine matrix, column-major, local space |
+| `parentId` | string \| null | Parent object UUID, `null` = root |
+| `userData` | object | Arbitrary extension data |
 
-#### `writer.addParam(param)`
+#### `writer.addParam(param)` — Parametric operation types
 
-记录一步参数化操作，支持以下 `op` 类型：
-
-| op | 参数 |
-|----|------|
+| op | Parameters |
+|----|-----------|
 | `extrude` | `depth`, `keepFace`, `cap` |
 | `bevel` | `width`, `segments`, `profile` |
 | `subdivide` | `iterations`, `method` |
 | `boolean_union` | `targetRef` |
 | `boolean_sub` | `targetRef` |
 | `mirror` | `axis`, `merge`, `mergeThreshold` |
-| `array` | `count`, `offset` |
+| `array` | `count`, `offset[3]` |
 | `cloth_panel` | `waistR`, `length`, `pleatFreq` |
 
 #### `await writer.build()` → `ArrayBuffer`
 
-构建并返回完整 WFSM 文件二进制数据。
+Assembles and returns the complete WFSM binary. Automatically builds half-edge topology from triangle indices.
 
 ---
 
 ### `new WFSM.Parser(buf)`
 
-#### `await parser.parse(opts)` → `result`
+#### `await parser.parse(opts)` → result
 
-| 选项 | 类型 | 说明 |
-|------|------|------|
-| `skipVerify` | boolean | 跳过哈希校验（调试用） |
-| `requiredPerm` | number | 检查所需权限位 |
-
-返回结构：
+| Option | Type | Description |
+|--------|------|-------------|
+| `skipVerify` | boolean | Skip integrity check (debug only) |
+| `requiredPerm` | number | Required permission bit(s) |
 
 ```js
-{
-  code:        'WFSM_OK',    // 错误码
-  meta:        { ... },      // 模型元信息
-  geometries:  [ ... ],      // 几何数据数组
-  topologies:  [ ... ],      // 拓扑数据数组
-  materials:   [ ... ],      // 材质数组
-  params:      [ ... ],      // 参数历史数组
-  objects:     [ ... ],      // 对象列表
-  editorState: { ... },      // 编辑器状态
-  permissions: 0b00000111,   // 权限位
-}
+const result = await parser.parse();
+// result.code        → 'WFSM_OK'
+// result.meta        → { modelId, modelName, author, category, tags, ... }
+// result.geometries  → [{ vertexCount, positions, indices, normals, uvSets, ... }]
+// result.topologies  → [{ vertices, halfEdges, faces }]
+// result.materials   → [{ materialId, baseColor, metalness, wearValue, ... }]
+// result.params      → [{ op, targetId, params, enabled }]
+// result.permissions → 0b00000111
 ```
 
-#### `await parser.quickMeta()` → `meta`
+#### `await parser.quickMeta()` → meta
 
-快速读取 META，不执行完整安全校验，适合资产管理器预览。
+Fast metadata read — no full security verification. For asset browser previews.
 
 ---
 
@@ -216,137 +231,142 @@ wfsm-format/
 ```js
 const topo = model.topologies[0];
 
-// 校验拓扑完整性
+// Validate half-edge structure
 const { valid, errors } = WFSM.TopologyUtils.validate(topo);
 
-// 遍历顶点的一环邻面 O(k)
+// One-ring face neighborhood — O(k)
 const faces = WFSM.TopologyUtils.vertexStar(topo.halfEdges, topo.vertices[0]);
 
-// 边环选择 O(k)
+// Edge loop selection — O(k)
 const loop = WFSM.TopologyUtils.edgeLoop(topo.halfEdges, 0);
 
-// 获取面的所有顶点
+// Vertices of a face
 const verts = WFSM.TopologyUtils.faceVertices(topo.halfEdges, topo.faces[0]);
 
-// 获取相邻顶点
+// Adjacent vertices
 const neighbors = WFSM.TopologyUtils.vertexNeighbors(topo.halfEdges, topo.vertices[0]);
 ```
 
 ---
 
-### 权限常量 `WFSM.PERM`
+### Permission Flags — `WFSM.PERM`
 
 ```js
-WFSM.PERM.VIEW       // 0b00000001 — 查看
-WFSM.PERM.EDIT       // 0b00000010 — 编辑
-WFSM.PERM.EXPORT     // 0b00000100 — 导出
-WFSM.PERM.DISTRIBUTE // 0b00001000 — 分发
-WFSM.PERM.OVERRIDE   // 0b10000000 — 管理员超级权限
+WFSM.PERM.VIEW        // 0b00000001
+WFSM.PERM.EDIT        // 0b00000010
+WFSM.PERM.EXPORT      // 0b00000100
+WFSM.PERM.DISTRIBUTE  // 0b00001000
+WFSM.PERM.OVERRIDE    // 0b10000000 — admin override
 ```
 
-### 错误码 `WFSM.ERR`
+### Error Codes — `WFSM.ERR`
+
+| Code | Meaning |
+|------|---------|
+| `WFSM_OK` | Success |
+| `WFSM_ERR_INVALID_MAGIC` | Not a valid WFSM file |
+| `WFSM_ERR_VERSION_MISMATCH` | Incompatible format version |
+| `WFSM_ERR_HASH_MISMATCH` | File has been tampered with |
+| `WFSM_ERR_EXPIRED` | Authorization has expired |
+| `WFSM_ERR_PERMISSION_DENIED` | Insufficient permissions |
+| `WFSM_ERR_TOPOLOGY_INVALID` | Half-edge structure is inconsistent |
+
+---
+
+### Export Utilities
 
 ```js
-WFSM.ERR.OK                 // 'WFSM_OK'
-WFSM.ERR.INVALID_MAGIC      // 魔数不匹配
-WFSM.ERR.VERSION_MISMATCH   // 版本不兼容
-WFSM.ERR.HASH_MISMATCH      // 文件被篡改
-WFSM.ERR.INVALID_SIGNATURE  // 签名验证失败
-WFSM.ERR.EXPIRED            // 授权已到期
-WFSM.ERR.PERMISSION_DENIED  // 权限不足
-WFSM.ERR.TOPOLOGY_INVALID   // 拓扑结构错误
+const objStr  = WFSM.toOBJ(model);   // → Wavefront OBJ string
+const gltfStr = WFSM.toGLTF(model);  // → glTF 2.0 JSON string
 ```
 
 ---
 
-### 导出工具
+## File Format
 
-```js
-// 导出为 OBJ 字符串
-const objStr = WFSM.toOBJ(model);
-require('fs').writeFileSync('model.obj', objStr);
-
-// 导出为 glTF JSON 字符串
-const gltfStr = WFSM.toGLTF(model);
-require('fs').writeFileSync('model.gltf', gltfStr);
-```
-
----
-
-## 文件格式规范
-
-### 顶层布局
+### Top-Level Layout
 
 ```
-┌──────────────────────────────────────────┐
-│  HEADER          固定 64 字节，永不压缩   │
-├──────────────────────────────────────────┤
-│  META            模型元信息 (JSON)        │
-│  SCENE           场景配置 (JSON)          │
-│  OBJECTS         对象列表 (JSON Array)    │
-│  GEOMETRY        几何数据 (Binary)        │
-│  TOPOLOGY        半边拓扑 (JSON)          │
-│  MATERIALS       材质数据 (JSON)          │
-│  PARAMS          参数历史 (JSON)          │
-│  EDITORSTATE     编辑器状态 (JSON)        │
-│  EXTENSIONS      扩展块 (Optional)       │
-├──────────────────────────────────────────┤
-│  CHUNK TABLE     块索引表                 │
-├──────────────────────────────────────────┤
-│  SECURITYFOOTER  固定 96 字节             │
-└──────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  HEADER          Fixed 64 bytes, never compressed │
+├──────────────────────────────────────────────┤
+│  META            Model metadata (JSON)           │
+│  SCENE           Scene config (JSON)             │
+│  OBJECTS         Object list (JSON Array)        │
+│  GEOMETRY        Mesh data (Binary Buffers)      │
+│  TOPOLOGY        Half-Edge DS (JSON)             │
+│  MATERIALS       Material definitions (JSON)     │
+│  PARAMS          Parametric history (JSON)       │
+│  EDITORSTATE     Editor snapshot (JSON)          │
+│  EXTENSIONS      Optional extension chunks       │
+├──────────────────────────────────────────────┤
+│  CHUNK TABLE     Chunk index (O(1) random access) │
+├──────────────────────────────────────────────┤
+│  SECURITYFOOTER  Fixed 96 bytes · SHA-256 + CRC32 │
+└──────────────────────────────────────────────┘
 ```
 
-### HEADER 字段（64 字节）
+### HEADER (64 bytes)
 
-| 偏移 | 字段 | 类型 | 值 |
-|------|------|------|----|
+| Offset | Field | Type | Value |
+|--------|-------|------|-------|
 | 0x00 | magic | char[4] | `WFSM` |
 | 0x04 | version_major | uint16_le | `2` |
 | 0x06 | version_minor | uint16_le | `0` |
-| 0x08 | endian | uint8 | `0`=little |
-| 0x09 | encoding | uint8 | `0`=JSON+bin |
-| 0x0A | compression | uint8 | `0`=none `1`=zstd |
-| 0x0C | generator | char[32] | 生成器名称 |
-| 0x2C | chunk_count | uint32_le | 块数量 |
-| 0x30 | chunk_table_offset | uint64_le | 索引表偏移 |
-
-### 安全机制
-
-- **SHA-256** — 对全文件内容计算哈希，检测字节级篡改
-- **CRC32** — SecurityFooter 自身完整性保护
-- **权限位** — 四级权限（VIEW / EDIT / EXPORT / DISTRIBUTE）
-- **到期时间** — 支持设置文件授权有效期
+| 0x08 | endian | uint8 | `0` = little-endian |
+| 0x09 | encoding | uint8 | `0` = JSON+binary |
+| 0x0A | compression | uint8 | `0` = none, `1` = zstd |
+| 0x0C | generator | char[32] | Generator string |
+| 0x2C | chunk_count | uint32_le | Number of chunks |
+| 0x30 | chunk_table_offset | uint64_le | Byte offset of chunk table |
 
 ---
 
-## 测试
+## Run Tests
 
 ```bash
-# 验证测试文件
+# Clone repo
+git clone https://github.com/derrykervin/WFSM-Format.git
+cd WFSM-Format
+
+# Verify test file
 node -e "
 const WFSM = require('./wfsm-parser.js');
-const parser = new WFSM.Parser(WFSM.FileUtils.readNode('test_cube.wfsm'));
-parser.parse().then(r => {
-  console.log('✅', r.meta.modelName);
-  console.log('   顶点:', r.geometries[0].vertexCount);
-  console.log('   拓扑:', WFSM.TopologyUtils.validate(r.topologies[0]).valid ? '通过' : '失败');
+const buf  = WFSM.FileUtils.readNode('test_cube.wfsm');
+new WFSM.Parser(buf).parse().then(r => {
+  console.log('Name:',     r.meta.modelName);
+  console.log('Vertices:', r.geometries[0].vertexCount);
+  console.log('Topology:', WFSM.TopologyUtils.validate(r.topologies[0]).valid ? 'VALID' : 'INVALID');
 });
 "
 
-# 运行完整示例
+# Run full example
 node wfsm-example.js
 ```
 
 ---
 
-## 许可证
+## CDN
 
-MIT License
+Always use the latest version:
+```
+https://cdn.jsdelivr.net/gh/derrykervin/WFSM-Format/wfsm-parser.js
+```
+
+Pin to a specific commit (recommended for production):
+```
+https://cdn.jsdelivr.net/gh/derrykervin/WFSM-Format@main/wfsm-parser.js
+```
+
+---
+
+## License
+
+MIT © [derrykervin](https://github.com/derrykervin)
 
 ---
 
 <div align="center">
   <strong>WFSM Format v2.0</strong> · WFS Engine / FIRM Platform<br>
-  Made by Derry.WFS
+  <a href="https://github.com/derrykervin/WFSM-Format">github.com/derrykervin/WFSM-Format</a>
 </div>

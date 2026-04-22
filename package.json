@@ -1,33 +1,25 @@
 {
   "name": "wfsm-parser",
   "version": "2.0.0",
-  "description": "WFSM 专属 3D 模型文件格式解析器 — WFS Engine Model Format Parser & Writer",
+  "description": "WFSM 3D model file format parser and writer for WFS Engine — zero dependencies, browser + Node.js",
   "main": "wfsm-parser.js",
   "scripts": {
-    "test":    "node wfsm-example.js",
-    "verify":  "node -e \"const WFSM=require('./wfsm-parser.js');const p=new WFSM.Parser(WFSM.FileUtils.readNode('test_cube.wfsm'));p.parse().then(r=>console.log('✅',r.meta.modelName,'—',r.geometries[0].vertexCount,'verts')).catch(e=>process.exit(1))\""
+    "test":    "node -e \"const WFSM=require('./wfsm-parser.js');const b=WFSM.FileUtils.readNode('test_cube.wfsm');new WFSM.Parser(b).parse().then(r=>{const v=WFSM.TopologyUtils.validate(r.topologies[0]);console.log('Name:',r.meta.modelName);console.log('Vertices:',r.geometries[0].vertexCount);console.log('Topology:',v.valid?'VALID':'INVALID');console.log('All tests passed.');}).catch(e=>{console.error(e.message);process.exit(1);})\"",
+    "example": "node wfsm-example.js"
   },
   "keywords": [
-    "3d",
-    "model",
-    "wfsm",
-    "parser",
-    "writer",
-    "wfs-engine",
-    "firm-platform",
-    "half-edge",
-    "topology",
-    "geometry"
+    "3d", "model", "wfsm", "parser", "writer",
+    "wfs-engine", "firm-platform", "half-edge", "topology", "geometry"
   ],
-  "author": "Derry.WFS",
+  "author": "derrykervin",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/wfsm-format.git"
+    "url": "https://github.com/derrykervin/WFSM-Format.git"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/wfsm-format#readme",
+  "homepage": "https://github.com/derrykervin/WFSM-Format#readme",
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/wfsm-format/issues"
+    "url": "https://github.com/derrykervin/WFSM-Format/issues"
   },
   "engines": {
     "node": ">=14.0.0"
@@ -37,6 +29,7 @@
     "wfsm-parser.js",
     "wfsm-example.js",
     "test_cube.wfsm",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ]
 }
