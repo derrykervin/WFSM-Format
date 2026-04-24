@@ -70,7 +70,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 /* ── VIEWPORT ───────────────────────────────────── */
 #glc{
   position:fixed;left:var(--LW);top:var(--TH);right:var(--RW);bottom:var(--BH);
-  display:block;cursor:grab;background:var(--bg);
+  display:block;cursor:grab;background:var(--bg);z-index:2;
 }
 #glc:active{cursor:grabbing}
 
@@ -393,13 +393,13 @@ const MP=prog(
 void main(){vN=normalize(uN*aN);vW=aP;gl_Position=uM*vec4(aP,1.);}`,
 `precision highp float;varying vec3 vN,vW;uniform vec3 uC;uniform float uW;
 void main(){
-  if(uW>.5){gl_FragColor=vec4(.0,.72,.92,.65);return;}
-  vec3 L1=normalize(vec3(2.,3.,4.)),L2=normalize(vec3(-3.,1.,-2.)),N=normalize(vN);
-  float d=max(dot(N,L1),0.)*.65+max(dot(N,L2),0.)*.2+.18;
-  vec3 col=uC*d;
-  float rim=pow(1.-max(dot(N,normalize(-vW)),0.),3.)*.3;
-  col+=vec3(0.,.8,1.)*rim;
-  gl_FragColor=vec4(col,1.);}`
+  if(uW>.5){gl_FragColor=vec4(.0,.72,.92,1.);return;}
+  vec3 N=normalize(vN);
+  vec3 L1=normalize(vec3(1.,2.,3.));
+  vec3 L2=normalize(vec3(-2.,1.,-1.));
+  float diff=max(dot(N,L1),0.)*.7+max(dot(N,L2),0.)*.25;
+  float ambient=0.4;
+  gl_FragColor=vec4(uC*(ambient+diff),1.);}`
 );
 const LP=prog(
 `attribute vec3 aP;uniform mat4 uM;void main(){gl_Position=uM*vec4(aP,1.);gl_PointSize=7.;}`,
@@ -496,24 +496,26 @@ function render(ts){
   if(!S.model||!vbo)return;
 
   const{MVP,V}=getMVP();
-  const NM=nm3(m3from4(V));
+  const NM=m3from4(V);  // rotation part of view = correct normal matrix for uniform scale
 
   // Mesh
   gl.useProgram(MP);
   gl.uniformMatrix4fv(MU.M,false,MVP);gl.uniformMatrix3fv(MU.N,false,NM);
   const mc=S.model.materials?.[0]?.baseColor?.slice(0,3)||[.4,.55,.72];
   gl.uniform3fv(MU.C,mc);gl.uniform1f(MU.W,0);
-  gl.bindBuffer(gl.ARRAY_BUFFER,vbo);gl.enableVertexAttribArray(MU.P);gl.vertexAttribPointer(MU.P,3,gl.FLOAT,false,0,0);
-  gl.bindBuffer(gl.ARRAY_BUFFER,nbo);gl.enableVertexAttribArray(MU.NR);gl.vertexAttribPointer(MU.NR,3,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,vbo);
+  gl.enableVertexAttribArray(MU.P);
+  gl.vertexAttribPointer(MU.P,3,gl.FLOAT,false,0,0);
+  gl.bindBuffer(gl.ARRAY_BUFFER,nbo);
+  gl.enableVertexAttribArray(MU.NR);
+  gl.vertexAttribPointer(MU.NR,3,gl.FLOAT,false,0,0);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibo);
 
-  if(S.shading==='wire'){gl.uniform1f(MU.W,1);gl.drawElements(gl.LINE_STRIP,iCount,gl.UNSIGNED_SHORT,0);}
-  else{
+  gl.uniform1f(MU.W,0);
+  gl.drawElements(gl.TRIANGLES,iCount,gl.UNSIGNED_SHORT,0);
+  if(S.shading==='wire'){
+    gl.uniform1f(MU.W,1);
     gl.drawElements(gl.TRIANGLES,iCount,gl.UNSIGNED_SHORT,0);
-    gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1,1);
-    gl.uniform1f(MU.W,1);gl.uniform3fv(MU.C,[0,.45,.65]);
-    gl.drawElements(gl.LINE_STRIP,iCount,gl.UNSIGNED_SHORT,0);
-    gl.disable(gl.POLYGON_OFFSET_FILL);
   }
 
   // Bones
