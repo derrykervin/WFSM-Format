@@ -413,7 +413,7 @@ let vbo=null,nbo=null,ibo=null,iCount=0;
 let bvbo=null,bCount=0;
 
 // Math
-const m4mul=(a,b)=>{const r=new Float32Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){r[i*4+j]=0;for(let k=0;k<4;k++)r[i*4+j]+=a[i*4+k]*b[k*4+j];}return r;};
+const m4mul=(a,b)=>{const r=new Array(16).fill(0);for(let col=0;col<4;col++)for(let row=0;row<4;row++)for(let k=0;k<4;k++)r[col*4+row]+=a[k*4+row]*b[col*4+k];return r;};
 const persp=(f,ar,n,fa)=>{const t=Math.tan(f/2);return new Float32Array([1/(ar*t),0,0,0,0,1/t,0,0,0,0,-(fa+n)/(fa-n),-1,0,0,-2*fa*n/(fa-n),0]);};
 const look=(e,a,u)=>{const z=nrm(sub(e,a)),x=nrm(crs(u,z)),y=crs(z,x);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,e),-dot(y,e),-dot(z,e),1]);};
 const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
